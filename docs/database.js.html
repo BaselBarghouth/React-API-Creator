@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: database.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: database.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>import sqlite from "sqlite";
+import SQL from "sql-template-strings";
+/**
+ * @type {object}- holds key values where the key is the table name and value is the primary key for this table
+ * @property {strings} users - name of users table
+ * @property {strings} drivers - name of drivers table
+ * @property {strings} driverpickup - name of driverpickup table
+ * @property {strings} payment - name of payment table
+ *  @property {strings} pickup - name of pickup table
+ */
+const TABLE = {
+  users: "user_id",
+  drivers: "driver_id",
+  driverpayment: "driverpayment_id",
+  driverpickup: "driverpickup_id",
+  payment: "payment_id",
+  pickup: "pickup_id"
+};
+
+/**
+ * desc
+ * @module DataBase
+ *
+ */
+
+class DataBase {
+  /**
+   * @function constructor
+   * @param {String} tableName
+   */
+  constructor(tableName) {
+    this.tableName = tableName;
+  }
+  /**
+   *@function start -open the database
+  
+   */
+  async start() {
+    const db = await sqlite.open(
+      "./db.sqlite",
+      console.log("database is conected")
+    );
+    return db;
+  }
+  /**
+   * This is a function that gets all data from your database deppends on the table name
+   * @function getData
+   * @returns {Array} -all data from the table
+   */
+  async getData() {
+    const db = await this.start();
+    const data = await db.all(`SELECT * FROM ${this.tableName}`);
+
+    return data;
+  }
+  /**
+   * This function add data in your database
+   * @function addData
+   * @param {Object} props -holds key, values where the key is the column name and value is the value you wanna add in a specific table
+   * @returns {Object} -holds another object which has sql statment you use and last id in your table  and how many changes happened in your table
+   */
+  async addData(props) {
+    const db = await this.start();
+    const columns = Object.keys(props);
+    const rows = Object.values(props);
+    let columnNames = "";
+    let values = "";
+    for (let column in columns) {
+      columnNames = columnNames + columns[column] + "," + " ";
+      values = values + `"${rows[column]}"` + "," + " ";
+    }
+    columnNames = columnNames.substring(0, columnNames.length - 2).trim();
+    values = values.substring(0, values.length - 2).trim();
+    let stmt = `INSERT INTO ${this.tableName} (${columnNames}) values (${values});`;
+    console.log(stmt);
+    try {
+      const newData = await db.run(stmt);
+
+      return newData;
+    } catch (err) {
+      console.log(err);
+      throw new Error(err);
+    }
+  }
+  /**
+   * This function add data in your database
+   * @function deleteData
+   * @param {Number} id -id for the row you wanna delete
+   */
+  async deleteData(id) {
+    const db = await this.start();
+    let stmt = `DELETE from ${this.tableName} where ${
+      TABLE[this.tableName]
+    } = ${id}`;
+
+    try {
+      const result = await db.all(stmt);
+      return result;
+    } catch (err) {
+      console.log("=", err);
+      throw new Error(`could not delete ==>${err}`);
+    }
+  }
+  /**
+   * This function add data in your database
+   * @function updateData
+   * @param {Number} id -holds the id for the row you wanna update
+   * @param {Object} props -holds key, values where the key is the column name and value is the value you wanna update in a specific table
+   * @returns {Object} -holds another object which has sql statment you use and last id in your table  and how many changes happened in your table
+   */
+  async updateData(id, props) {
+    const db = await this.start();
+
+    const columns = Object.keys(props);
+    const rows = Object.values(props);
+    let values = "";
+    for (let column in columns) {
+      values = values + columns[column] + "=" + `"${rows[column]}"` + " " + ",";
+    }
+    values = values.substring(0, values.length - 2).trim();
+    const stmt = `UPDATE ${this.tableName} set ${values} where ${
+      TABLE[this.tableName]
+    } = ${id}`;
+
+    try {
+      const result = await db.run(stmt);
+      return result;
+    } catch (err) {
+      throw new Error(`could not edit ==>${err}`);
+    }
+  }
+  /**
+   * This function add data in your database
+   * @function findDataById
+   * @param {Number} id -id for the row you wanna find in a spicific table
+   */
+  async findDataById(id) {
+    const db = await this.start();
+    const stmt = `select * from ${this.tableName} where ${
+      TABLE[this.tableName]
+    } = ${id} `;
+
+    try {
+      const rows = await db.all(stmt);
+      return rows;
+    } catch (err) {
+      console.log("=", err);
+      throw new Error("Could not perform operation!", err);
+    }
+  }
+  /**
+   * This function add data in your database
+   * @function login
+   * @param {Object} props -holds keys, values where the keys are the columns name and value is the value you wanna check in a specific table
+   */
+  async login(props) {
+    const db = await this.start();
+    const { email, password } = props;
+
+    try {
+      const stmt = SQL`SELECT * FROM users WHERE email = ${email} AND password = ${password}`;
+      const rows = await db.all(stmt);
+
+      const user = rows[0];
+      if (!user) {
+        throw new Error("Incorrect username or password!");
+      } else return user;
+    } catch (err) {
+      throw new Error("Could not perform operation!");
+    }
+  }
+}
+
+export default DataBase;
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-DataBase.html">DataBase</a></li></ul><h3>Global</h3><ul><li><a href="global.html#TABLE">TABLE</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.3</a> on Mon Oct 07 2019 16:40:46 GMT+0300 (Eastern European Summer Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>
